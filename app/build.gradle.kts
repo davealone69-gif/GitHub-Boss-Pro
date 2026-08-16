@@ -32,9 +32,7 @@ android {
     }
 
     kotlinOptions { jvmTarget = "17" }
-
     buildFeatures { compose = true }
-
     packaging.resources.excludes += "/META-INF/{AL2.0,LGPL2.1}"
 }
 
@@ -42,6 +40,7 @@ dependencies {
     implementation(project(":libs"))
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
+    implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.activity.compose)
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.ui)
