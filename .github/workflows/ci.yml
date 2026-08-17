@@ -34,10 +34,16 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Setup Gradle 8.9
-        uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: '8.9'
+      - name: Install Gradle 8.9 directly
+        shell: bash
+        run: |
+          set -euo pipefail
+          GRADLE_VERSION=8.9
+          curl -fsSL "https://services.gradle.org/distributions/gradle-${GRADLE_VERSION}-bin.zip" -o /tmp/gradle.zip
+          sudo mkdir -p /opt/gradle
+          sudo unzip -q -o /tmp/gradle.zip -d /opt/gradle
+          echo "/opt/gradle/gradle-${GRADLE_VERSION}/bin" >> "$GITHUB_PATH"
+          /opt/gradle/gradle-${GRADLE_VERSION}/bin/gradle --version
 
       - name: Apply permanent APK build kit
         working-directory: github-boss
@@ -61,7 +67,7 @@ jobs:
           echo '=== APK BUILD KIT README ==='
           cat apk-build-kit/README.md
 
-      - name: Verify Gradle and Android project
+      - name: Verify Android project
         working-directory: github-boss
         shell: bash
         run: |
