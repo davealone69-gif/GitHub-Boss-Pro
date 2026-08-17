@@ -12,77 +12,90 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  JAVA_VERSION: "17"
-  GRADLE_OPTS: "-Dorg.gradle.daemon=false -Dorg.gradle.caching=true -Dorg.gradle.parallel=true"
+  JAVA_VERSION: '17'
+  GRADLE_OPTS: '-Dorg.gradle.daemon=false -Dorg.gradle.caching=true -Dorg.gradle.parallel=true'
 
 jobs:
   build:
-    name: Build Debug & Release APK
+    name: Build GitHub Boss APK
     runs-on: ubuntu-latest
     timeout-minutes: 45
 
     steps:
-      - name: Checkout
+      - name: Checkout GitHub Boss APK source
         uses: actions/checkout@v4
         with:
+          repository: davealone69-gif/GitHub-Boss
+          ref: main
+          path: github-boss
           fetch-depth: 0
 
-      - name: Set up JDK ${{ env.JAVA_VERSION }}
+      - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: ${{ env.JAVA_VERSION }}
-          cache: gradle
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Cache Gradle
-        uses: actions/cache@v4
+      - name: Setup Gradle 8.9
+        uses: gradle/actions/setup-gradle@v4
         with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties', '**/libs.versions.toml') }}
-          restore-keys: |
-            ${{ runner.os }}-gradle-
+          gradle-version: '8.9'
 
-      - name: Grant execute permission for gradlew
-        run: chmod +x ./gradlew
+      - name: Apply permanent APK build kit
+        working-directory: github-boss
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f apk-build-kit/README.md
+          test -f apk-build-kit/root-build.gradle.kts
+          test -f apk-build-kit/app-build.gradle.kts
+          test -f apk-build-kit/libs.versions.toml
+          test -f apk-build-kit/settings.gradle.kts
+          test -f apk-build-kit/gradle-wrapper.properties
+          cp apk-build-kit/root-build.gradle.kts build.gradle.kts
+          cp apk-build-kit/app-build.gradle.kts app/build.gradle.kts
+          mkdir -p gradle/wrapper
+          cp apk-build-kit/libs.versions.toml gradle/libs.versions.toml
+          cp apk-build-kit/settings.gradle.kts settings.gradle.kts
+          cp apk-build-kit/gradle-wrapper.properties gradle/wrapper/gradle-wrapper.properties
+          echo '=== APK BUILD KIT README ==='
+          cat apk-build-kit/README.md
 
-      - name: Validate Gradle Wrapper
-        uses: gradle/actions/wrapper-validation@v3
+      - name: Verify Gradle project
+        working-directory: github-boss
+        shell: bash
+        run: |
+          set -euo pipefail
+          gradle --version
+          test -f settings.gradle.kts
+          test -f build.gradle.kts
+          test -f app/build.gradle.kts
+          test -f gradle/libs.versions.toml
+          test -f gradle/wrapper/gradle-wrapper.properties
 
       - name: Assemble Debug APK
-        run: ./gradlew :app:assembleDebug --stacktrace --no-daemon
+        working-directory: github-boss
+        run: gradle :app:assembleDebug --stacktrace --no-daemon
 
-      - name: Assemble Release APK (unsigned)
-        run: ./gradlew :app:assembleRelease --stacktrace --no-daemon
-        # Signing is intentionally omitted here.
-        # Provide signing config via local gradle.properties or CI secrets
-        # and a dedicated signed-release workflow / Fastlane lane.
+      - name: Assemble Release APK
+        working-directory: github-boss
+        run: gradle :app:assembleRelease --stacktrace --no-daemon
 
       - name: Upload Debug APK
         uses: actions/upload-artifact@v4
         with:
-          name: app-debug
-          path: app/build/outputs/apk/debug/*.apk
+          name: github-boss-debug-apk
+          path: github-boss/app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
           retention-days: 14
 
-      - name: Upload Release APK (unsigned)
+      - name: Upload Release APK
         uses: actions/upload-artifact@v4
         with:
-          name: app-release-unsigned
-          path: app/build/outputs/apk/release/*.apk
+          name: github-boss-release-apk
+          path: github-boss/app/build/outputs/apk/release/*.apk
           if-no-files-found: error
-          retention-days: 7
-
-      - name: Upload mapping (if present)
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: mapping-release
-          path: app/build/outputs/mapping/release/mapping.txt
-          if-no-files-found: ignore
-          retention-days: 30
+          retention-days: 14
