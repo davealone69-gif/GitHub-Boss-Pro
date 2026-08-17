@@ -29,17 +29,32 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Grant execute permission for gradlew
-        run: chmod +x gradlew || true
+      - name: Ensure Gradle available
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -f gradlew ] && [ -f gradle/wrapper/gradle-wrapper.jar ]; then
+            chmod +x gradlew
+            echo "Using project Gradle Wrapper"
+            echo "GRADLE_CMD=./gradlew" >> "$GITHUB_ENV"
+          else
+            echo "Wrapper jar missing — installing Gradle 8.9"
+            curl -fsSL "https://services.gradle.org/distributions/gradle-8.9-bin.zip" -o /tmp/gradle.zip
+            sudo unzip -q -o /tmp/gradle.zip -d /opt/gradle
+            echo "/opt/gradle/gradle-8.9/bin" >> "$GITHUB_PATH"
+            echo "GRADLE_CMD=gradle" >> "$GITHUB_ENV"
+            gradle --version
+          fi
 
-      - name: Setup Gradle
+      - name: Setup Gradle (cache)
         uses: gradle/actions/setup-gradle@v4
+        if: hashFiles('gradle/wrapper/gradle-wrapper.jar') != ''
 
       - name: Build Debug APK
-        run: ./gradlew :app:assembleDebug --stacktrace --no-daemon
+        run: ${{ env.GRADLE_CMD }} :app:assembleDebug --stacktrace --no-daemon
 
       - name: Unit Tests
-        run: ./gradlew :app:testDebugUnitTest --stacktrace --no-daemon || true
+        run: ${{ env.GRADLE_CMD }} :app:testDebugUnitTest --stacktrace --no-daemon || true
 
       - name: Upload Debug APK
         uses: actions/upload-artifact@v4
