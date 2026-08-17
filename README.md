@@ -6,50 +6,46 @@ This is the official clean home for the Github Boss app.
 
 ---
 
-## Quick Links
-- **Talk to Grok (me)**: [https://grok.x.ai](https://grok.x.ai)  
-  Just say you’re working on GitHub-Boss-Pro and I already know the context.
+## Status (2026-08-18)
 
----
+- Multi-module skeleton (`:app` + `:libs`) + buildSrc + version catalog ✅
+- Modern Compose (Kotlin 2.0 Compose plugin) ✅
+- Working PAT login + repository list UI ✅
+- CI builds **this** repo ✅
+- Secure signing placeholders (secrets stay out of VCS) ✅
+- Feature migration from old repos → in progress
 
-## Project Structure
-```
-GitHub-Boss-Pro/
-├── app/                  # Main application module
-├── libs/                 # Shared library module
-├── buildSrc/             # Convention plugins + ProjectConfig
-├── gradle/               # Version catalog
-├── .github/workflows/    # CI
-└── docs/                 # Documentation
-```
+## Quick start
 
-## Build
 ```bash
 ./gradlew assembleDebug
 ./gradlew bundleRelease
 ```
 
-## Current Status
-- Clean multi-module skeleton ✅
-- buildSrc + ProjectConfig ✅
-- Basic CI ✅
-- Feature migration from old repos → in progress
+## Required PAT scopes
 
----
+- `repo`
+- `workflow`
+- `read:user`
+- `notifications`
 
-## Prompt Box for Future Projects
+Generate at: https://github.com/settings/tokens
 
-Copy and paste this when you want to start a new clean project with me:
+## Project structure
 
-```text
-I want a new clean production-ready Android project.
-
-Project name: {{PROJECT_NAME}}
-Package: {{APPLICATION_ID}}
-Main features: {{FEATURES}}
-
-Please create a new private repo and put a solid multi-module Gradle skeleton in it (app + libs, buildSrc, version catalog, CI). Then we will add the features step by step.
 ```
+GitHub-Boss-Pro/
+├── app/                  # Main application module
+├── libs/                 # Shared library module
+├── buildSrc/             # Convention plugins + ProjectConfig
+├── gradle/               # Version catalog + wrapper
+├── .github/workflows/    # CI
+└── docs/                 # Documentation
+```
+
+## Talk to Grok
+
+Just say you’re working on GitHub-Boss-Pro and the context is already loaded.
 
 ---
 
