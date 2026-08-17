@@ -7,34 +7,89 @@ on:
     branches: [ main, develop ]
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   build:
+    name: Build GitHub Boss
     runs-on: ubuntu-latest
     timeout-minutes: 45
 
     steps:
-      - name: Checkout Repository
+      - name: Checkout GitHub Boss APK source
         uses: actions/checkout@v4
         with:
+          repository: davealone69-gif/GitHub-Boss
+          ref: main
+          path: github-boss
           fetch-depth: 0
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
-          distribution: 'temurin'
+          distribution: temurin
           java-version: '17'
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v3
+      - name: Setup Gradle 8.9
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
 
-      - name: Validate Gradle Wrapper
-        uses: gradle/actions/wrapper-validation@v3
+      - name: Apply permanent APK build kit
+        working-directory: github-boss
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f apk-build-kit/README.md
+          test -f apk-build-kit/root-build.gradle.kts
+          test -f apk-build-kit/app-build.gradle.kts
+          test -f apk-build-kit/libs.versions.toml
+          test -f apk-build-kit/settings.gradle.kts
+          test -f apk-build-kit/gradle-wrapper.properties
 
-      - name: Build Debug
-        run: ./gradlew assembleDebug --stacktrace --no-daemon
+          cp apk-build-kit/root-build.gradle.kts build.gradle.kts
+          cp apk-build-kit/app-build.gradle.kts app/build.gradle.kts
+          mkdir -p gradle/wrapper
+          cp apk-build-kit/libs.versions.toml gradle/libs.versions.toml
+          cp apk-build-kit/settings.gradle.kts settings.gradle.kts
+          cp apk-build-kit/gradle-wrapper.properties gradle/wrapper/gradle-wrapper.properties
+
+          echo '=== APK BUILD KIT README ==='
+          cat apk-build-kit/README.md
+
+      - name: Verify Gradle and Android project
+        working-directory: github-boss
+        shell: bash
+        run: |
+          set -euo pipefail
+          gradle --version
+          test -f settings.gradle.kts
+          test -f build.gradle.kts
+          test -f app/build.gradle.kts
+          test -f gradle/libs.versions.toml
+          test -f gradle/wrapper/gradle-wrapper.properties
+
+      - name: Build Debug APK
+        working-directory: github-boss
+        run: gradle :app:assembleDebug --stacktrace --no-daemon
 
       - name: Unit Tests
-        run: ./gradlew testDebugUnitTest --stacktrace --no-daemon
+        working-directory: github-boss
+        run: gradle :app:testDebugUnitTest --stacktrace --no-daemon
+
+      - name: Locate APK
+        working-directory: github-boss
+        shell: bash
+        run: find app/build/outputs -type f -name '*.apk' -print
+
+      - name: Upload Debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: github-boss-debug-apk
+          path: github-boss/app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
+          retention-days: 14
