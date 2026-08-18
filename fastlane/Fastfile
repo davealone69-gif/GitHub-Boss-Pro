@@ -1,0 +1,34 @@
+default_platform(:android)
+
+platform :android do
+  desc "Build release AAB"
+  lane :build_aab do
+    gradle(
+      task: "bundle",
+      build_type: "Release"
+    )
+  end
+
+  desc "Upload to Play Store internal track (requires secrets)"
+  lane :internal do
+    # Requires GOOGLE_PLAY_JSON_KEY (service account) in CI secrets
+    # and a configured supply / play store setup.
+    gradle(
+      task: "bundle",
+      build_type: "Release"
+    )
+    # supply(
+    #   track: "internal",
+    #   aab: "app/build/outputs/bundle/release/app-release.aab",
+    #   json_key_data: ENV["GOOGLE_PLAY_JSON_KEY"]
+    # )
+  end
+
+  desc "Build debug APK"
+  lane :debug do
+    gradle(
+      task: "assemble",
+      build_type: "Debug"
+    )
+  end
+end

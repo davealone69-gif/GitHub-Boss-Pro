@@ -7,8 +7,16 @@ on:
     branches: [main, develop]
   workflow_dispatch:
 
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
+
+env:
+  JAVA_VERSION: "17"
+  GRADLE_OPTS: "-Dorg.gradle.daemon=false -Dorg.gradle.caching=true -Dorg.gradle.parallel=true"
 
 jobs:
   build:
@@ -24,19 +32,19 @@ jobs:
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: "17"
+          java-version: ${{ env.JAVA_VERSION }}
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Ensure Gradle available
+      - name: Ensure Gradle Wrapper
         shell: bash
         run: |
           set -euo pipefail
           if [ -f gradlew ] && [ -f gradle/wrapper/gradle-wrapper.jar ]; then
             chmod +x gradlew
-            echo "Using project Gradle Wrapper"
             echo "GRADLE_CMD=./gradlew" >> "$GITHUB_ENV"
+            echo "Using project Gradle Wrapper"
           else
             echo "Wrapper jar missing — installing Gradle 8.9"
             curl -fsSL "https://services.gradle.org/distributions/gradle-8.9-bin.zip" -o /tmp/gradle.zip
@@ -53,6 +61,9 @@ jobs:
       - name: Build Debug APK
         run: ${{ env.GRADLE_CMD }} :app:assembleDebug --stacktrace --no-daemon
 
+      - name: Build Release Bundle (AAB)
+        run: ${{ env.GRADLE_CMD }} :app:bundleRelease --stacktrace --no-daemon || true
+
       - name: Unit Tests
         run: ${{ env.GRADLE_CMD }} :app:testDebugUnitTest --stacktrace --no-daemon || true
 
@@ -61,5 +72,13 @@ jobs:
         with:
           name: github-boss-pro-debug-apk
           path: app/build/outputs/apk/debug/*.apk
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Upload Release AAB
+        uses: actions/upload-artifact@v4
+        with:
+          name: github-boss-pro-release-aab
+          path: app/build/outputs/bundle/release/*.aab
           if-no-files-found: warn
           retention-days: 14

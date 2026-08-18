@@ -1,0 +1,2 @@
+json_key_file("") # Path to the json secret file (set via env in CI)
+package_name("com.davealone69.githubboss")

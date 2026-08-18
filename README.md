@@ -9,15 +9,21 @@ This is the official clean home for the Github Boss app.
 ## Status (2026-08-18)
 
 - Multi-module skeleton (`:app` + `:libs`) + buildSrc + version catalog ✅
+- Convention plugins now apply ProjectConfig (compile/min/target SDK, Java 17) ✅
 - Modern Compose (Kotlin 2.0 Compose plugin) ✅
 - Working PAT login + repository list UI ✅
-- CI builds **this** repo ✅
+- CI builds **this** repo (APK + AAB attempt) ✅
 - Secure signing placeholders (secrets stay out of VCS) ✅
+- Fastlane skeleton present ✅
 - Feature migration from old repos → in progress
 
 ## Quick start
 
 ```bash
+# Restore wrapper jar if missing (one-time)
+# curl -fsSL -o gradle/wrapper/gradle-wrapper.jar \
+#   https://raw.githubusercontent.com/gradle/gradle/v8.9.0/gradle/wrapper/gradle-wrapper.jar
+
 ./gradlew assembleDebug
 ./gradlew bundleRelease
 ```
@@ -39,6 +45,7 @@ GitHub-Boss-Pro/
 ├── libs/                 # Shared library module
 ├── buildSrc/             # Convention plugins + ProjectConfig
 ├── gradle/               # Version catalog + wrapper
+├── fastlane/             # Play Store / build lanes
 ├── .github/workflows/    # CI
 └── docs/                 # Documentation
 ```
