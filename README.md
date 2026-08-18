@@ -9,13 +9,15 @@ This is the official clean home for the Github Boss app.
 ## Status (2026-08-18)
 
 - Multi-module skeleton (`:app` + `:libs`) + buildSrc + version catalog ✅
-- Convention plugins now apply ProjectConfig (compile/min/target SDK, Java 17) ✅
+- Convention plugins apply ProjectConfig (compile/min/target SDK, Java 17) ✅
 - Modern Compose (Kotlin 2.0 Compose plugin) ✅
-- Working PAT login + repository list UI ✅
-- CI builds **this** repo (APK + AAB attempt) ✅
+- Working PAT login + repository list UI (already present) ✅
+- CI builds **this** repo (APK + AAB) ✅
 - Secure signing placeholders (secrets stay out of VCS) ✅
-- Fastlane skeleton present ✅
-- Feature migration from old repos → in progress
+- Fastlane skeleton ✅
+- Detekt config ✅
+- Release workflow stub (manual, secrets-based) ✅
+- **Feature migration frozen** — nothing new added without explicit approval
 
 ## Quick start
 
@@ -46,7 +48,8 @@ GitHub-Boss-Pro/
 ├── buildSrc/             # Convention plugins + ProjectConfig
 ├── gradle/               # Version catalog + wrapper
 ├── fastlane/             # Play Store / build lanes
-├── .github/workflows/    # CI
+├── config/detekt/        # Static analysis config
+├── .github/workflows/    # CI + release
 └── docs/                 # Documentation
 ```
 

@@ -1,0 +1,86 @@
+name: Release (AAB)
+
+on:
+  workflow_dispatch:
+    inputs:
+      track:
+        description: "Play track (internal / alpha / beta / production)"
+        required: false
+        default: "internal"
+  # Uncomment when ready for tag-based releases:
+  # push:
+  #   tags:
+  #     - "v*"
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  JAVA_VERSION: "17"
+  GRADLE_OPTS: "-Dorg.gradle.daemon=false -Dorg.gradle.caching=true"
+
+jobs:
+  release:
+    name: Build signed AAB
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Ensure Gradle
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -f gradlew ] && [ -f gradle/wrapper/gradle-wrapper.jar ]; then
+            chmod +x gradlew
+            echo "GRADLE_CMD=./gradlew" >> "$GITHUB_ENV"
+          else
+            echo "Wrapper jar missing — installing Gradle 8.9"
+            curl -fsSL "https://services.gradle.org/distributions/gradle-8.9-bin.zip" -o /tmp/gradle.zip
+            sudo unzip -q -o /tmp/gradle.zip -d /opt/gradle
+            echo "/opt/gradle/gradle-8.9/bin" >> "$GITHUB_PATH"
+            echo "GRADLE_CMD=gradle" >> "$GITHUB_ENV"
+          fi
+
+      - name: Decode keystore (if secrets present)
+        if: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > "$RUNNER_TEMP/release.jks"
+          echo "KEYSTORE_PATH=$RUNNER_TEMP/release.jks" >> "$GITHUB_ENV"
+          echo "KEYSTORE_PASSWORD=${{ secrets.KEYSTORE_PASSWORD }}" >> "$GITHUB_ENV"
+          echo "KEY_ALIAS=${{ secrets.KEY_ALIAS }}" >> "$GITHUB_ENV"
+          echo "KEY_PASSWORD=${{ secrets.KEY_PASSWORD }}" >> "$GITHUB_ENV"
+
+      - name: Bundle Release AAB
+        run: ${{ env.GRADLE_CMD }} :app:bundleRelease --stacktrace --no-daemon
+
+      - name: Upload Release AAB
+        uses: actions/upload-artifact@v4
+        with:
+          name: github-boss-pro-release-aab
+          path: app/build/outputs/bundle/release/*.aab
+          if-no-files-found: error
+          retention-days: 30
+
+      # Optional: Fastlane supply / Play upload when GOOGLE_PLAY_JSON_KEY is set
+      # - name: Upload to Play (internal)
+      #   if: ${{ secrets.GOOGLE_PLAY_JSON_KEY != '' }}
+      #   run: |
+      #     # install fastlane + run lane
