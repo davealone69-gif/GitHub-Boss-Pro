@@ -1,6 +1,5 @@
 package com.davealone69.githubboss.data
 
-import com.squareup.moshi.Json
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 import okhttp3.MediaType.Companion.toMediaType
@@ -13,13 +12,17 @@ import java.util.concurrent.TimeUnit
  * Free-tier Gemini via Google AI Studio API key.
  * Get a key (free): https://aistudio.google.com/apikey
  *
- * Falls back gracefully — caller should use KotlinCodeMaker if this fails.
+ * Modes:
+ * - code: single-screen / feature Kotlin generation
+ * - guide: complete app guide + starter code
+ *
+ * Falls back gracefully — caller should use KotlinCodeMaker / AppGuideGenerator if this fails.
  */
 class GeminiCodeService {
 
     private val client = OkHttpClient.Builder()
         .connectTimeout(30, TimeUnit.SECONDS)
-        .readTimeout(90, TimeUnit.SECONDS)
+        .readTimeout(120, TimeUnit.SECONDS)
         .build()
 
     private val moshi = Moshi.Builder()
@@ -29,13 +32,18 @@ class GeminiCodeService {
     private val requestAdapter = moshi.adapter(GeminiRequest::class.java)
     private val responseAdapter = moshi.adapter(GeminiResponse::class.java)
 
+    enum class Mode { CODE, FULL_APP_GUIDE }
+
     suspend fun generateKotlinCode(
         apiKey: String,
         prompt: String,
-        packageName: String = "com.example"
+        packageName: String = "com.example",
+        mode: Mode = Mode.CODE
     ): ApiResult<String> {
         return try {
-            val system = """
+            val system = when (mode) {
+                Mode.FULL_APP_GUIDE -> AppGuideGenerator.geminiGuideSystemPrompt(packageName)
+                Mode.CODE -> """
 You are an expert Android Kotlin engineer.
 Generate production-ready Jetpack Compose + ViewModel code for this request.
 
@@ -52,7 +60,8 @@ Rules:
 - Include UiState, ViewModel, and @Composable Screen at minimum
 - Add Room or Retrofit stubs only if the prompt asks for them
 - No explanations outside the FILE blocks
-            """.trimIndent()
+                """.trimIndent()
+            }
 
             val fullPrompt = "$system\n\nUser request:\n$prompt"
 
@@ -63,7 +72,7 @@ Rules:
                     )
                 ),
                 generationConfig = GenerationConfig(
-                    temperature = 0.35,
+                    temperature = if (mode == Mode.FULL_APP_GUIDE) 0.4 else 0.35,
                     maxOutputTokens = 8192
                 )
             )
@@ -113,7 +122,7 @@ Rules:
         fun parseGeminiOutput(raw: String): List<KotlinCodeMaker.KotlinFile> {
             val files = mutableListOf<KotlinCodeMaker.KotlinFile>()
             val regex = Regex(
-                """###\s*FILE:\s*([^\n]+)\s*```(?:kotlin)?\s*([\s\S]*?)```""",
+                """###\s*FILE:\s*([^\n]+)\s*```(?:kotlin|markdown|md)?\s*([\s\S]*?)```""",
                 RegexOption.IGNORE_CASE
             )
             regex.findAll(raw).forEach { match ->
@@ -126,8 +135,8 @@ Rules:
             }
             if (files.isEmpty() && raw.isNotBlank()) {
                 files += KotlinCodeMaker.KotlinFile(
-                    path = "ui/GeneratedScreen.kt",
-                    name = "GeneratedScreen.kt",
+                    path = "docs/APP_GUIDE.md",
+                    name = "APP_GUIDE.md",
                     content = raw
                 )
             }
