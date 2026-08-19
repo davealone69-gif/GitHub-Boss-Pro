@@ -16,7 +16,7 @@ sealed class AuthState {
     data class Error(val message: String) : AuthState()
 }
 
-/** Result of a code-gen run (template or Gemini). */
+/** Result of a code-gen / guide run (template or Gemini). */
 data class CodeGenResult(
     val files: List<GeneratedFile>,
     val source: String, // "template" or "gemini"
@@ -191,10 +191,56 @@ class GitHubViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
+    private fun mapParsedToGenerated(
+        parsed: List<KotlinCodeMaker.KotlinFile>,
+        packageName: String
+    ): List<GeneratedFile> {
+        return parsed.map { file ->
+            val isDoc = file.name.endsWith(".md") || file.path.startsWith("docs/")
+            val path = if (isDoc) {
+                file.path.removePrefix("app/src/main/java/").let {
+                    if (it.startsWith("docs/")) it else file.path
+                }.let { p -> if (p.startsWith("docs/")) p else "docs/${file.name}" }
+            } else {
+                "app/src/main/java/${packageName.replace('.', '/')}/${file.path}"
+            }
+            GeneratedFile(
+                path = path,
+                category = if (isDoc) "Docs" else "Kotlin",
+                content = file.content
+            )
+        }
+    }
+
+    private fun templateBundle(
+        prompt: String,
+        includeRoom: Boolean,
+        includeHilt: Boolean,
+        includeWorkflows: Boolean,
+        includeGeminiStub: Boolean,
+        minSdk: String,
+        packageName: String,
+        fullAppGuide: Boolean
+    ): List<GeneratedFile> {
+        val project = generateProjectFiles(
+            prompt, includeRoom, includeHilt, includeWorkflows, includeGeminiStub, minSdk, packageName
+        )
+        return if (fullAppGuide) {
+            listOf(
+                AppGuideGenerator.generateGuide(
+                    prompt, includeRoom, includeHilt, includeWorkflows, packageName
+                )
+            ) + project
+        } else {
+            project
+        }
+    }
+
     /**
-     * Generate Kotlin code from a text prompt.
+     * Generate Kotlin code and/or a complete app guide from a text prompt.
      * - Free offline template always works (no key)
      * - Optional free Gemini key for smarter output; falls back to template on error
+     * - [fullAppGuide] adds architecture plan, step-by-step build, Termux tips
      */
     fun generateCode(
         prompt: String,
@@ -202,6 +248,7 @@ class GitHubViewModel(application: Application) : AndroidViewModel(application) 
         includeRoom: Boolean,
         includeHilt: Boolean,
         includeWorkflows: Boolean,
+        fullAppGuide: Boolean = false,
         includeGeminiStub: Boolean = false,
         minSdk: String = "24",
         packageName: String = "com.example"
@@ -209,32 +256,40 @@ class GitHubViewModel(application: Application) : AndroidViewModel(application) 
         viewModelScope.launch {
             _codeGenState.value = ApiResult.Loading
 
+            val mode = if (fullAppGuide) {
+                GeminiCodeService.Mode.FULL_APP_GUIDE
+            } else {
+                GeminiCodeService.Mode.CODE
+            }
+
             val geminiKey = tokenManager.getGeminiKey()
             if (useGemini && !geminiKey.isNullOrBlank()) {
-                when (val res = geminiService.generateKotlinCode(geminiKey, prompt, packageName)) {
+                when (val res = geminiService.generateKotlinCode(geminiKey, prompt, packageName, mode)) {
                     is ApiResult.Success -> {
                         val kotlinFiles = GeminiCodeService.parseGeminiOutput(res.data)
-                        val generated = kotlinFiles.map {
-                            GeneratedFile(
-                                path = "app/src/main/java/${packageName.replace('.', '/')}/${it.path}",
-                                category = if (it.name.endsWith(".md")) "Docs" else "Kotlin",
-                                content = it.content
-                            )
-                        }
+                        val generated = mapParsedToGenerated(kotlinFiles, packageName)
                         val scaffold = generateProjectFiles(
                             prompt, includeRoom, includeHilt, includeWorkflows, includeGeminiStub, minSdk, packageName
                         ).filter { it.category != "Kotlin" }
+                        val hasGuide = generated.any { it.path.contains("APP_GUIDE") || it.category == "Docs" }
+                        val files = if (fullAppGuide && !hasGuide) {
+                            listOf(
+                                AppGuideGenerator.generateGuide(
+                                    prompt, includeRoom, includeHilt, includeWorkflows, packageName
+                                )
+                            ) + generated + scaffold
+                        } else {
+                            generated + scaffold
+                        }
                         _codeGenState.value = ApiResult.Success(
-                            CodeGenResult(
-                                files = generated + scaffold,
-                                source = "gemini"
-                            )
+                            CodeGenResult(files = files, source = "gemini")
                         )
                         return@launch
                     }
                     is ApiResult.Error -> {
-                        val template = generateProjectFiles(
-                            prompt, includeRoom, includeHilt, includeWorkflows, includeGeminiStub, minSdk, packageName
+                        val template = templateBundle(
+                            prompt, includeRoom, includeHilt, includeWorkflows,
+                            includeGeminiStub, minSdk, packageName, fullAppGuide
                         )
                         _codeGenState.value = ApiResult.Success(
                             CodeGenResult(
@@ -249,8 +304,9 @@ class GitHubViewModel(application: Application) : AndroidViewModel(application) 
                 }
             }
 
-            val template = generateProjectFiles(
-                prompt, includeRoom, includeHilt, includeWorkflows, includeGeminiStub, minSdk, packageName
+            val template = templateBundle(
+                prompt, includeRoom, includeHilt, includeWorkflows,
+                includeGeminiStub, minSdk, packageName, fullAppGuide
             )
             _codeGenState.value = ApiResult.Success(
                 CodeGenResult(files = template, source = "template")

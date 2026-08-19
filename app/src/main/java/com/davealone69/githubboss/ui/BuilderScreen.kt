@@ -18,6 +18,7 @@ import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.InsertDriveFile
+import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -43,9 +44,10 @@ fun BuilderScreen(viewModel: GitHubViewModel) {
     val codeGen by viewModel.codeGenState.collectAsStateWithLifecycle()
     val hasGemini by viewModel.hasGeminiKey.collectAsStateWithLifecycle()
 
-    var prompt by remember { mutableStateOf("Note list screen with search and Room") }
+    var prompt by remember { mutableStateOf("Habit tracker with daily checklist") }
     var geminiKeyInput by remember { mutableStateOf("") }
     var useGemini by remember { mutableStateOf(hasGemini) }
+    var fullAppGuide by remember { mutableStateOf(true) }
     var includeRoom by remember { mutableStateOf(true) }
     var includeHilt by remember { mutableStateOf(false) }
     var includeWorkflows by remember { mutableStateOf(true) }
@@ -84,7 +86,7 @@ fun BuilderScreen(viewModel: GitHubViewModel) {
         ) {
             Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text(
-                    "Text → Kotlin (free)",
+                    "Text → Kotlin + App Guide (free)",
                     style = MaterialTheme.typography.labelLarge,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary
@@ -94,7 +96,7 @@ fun BuilderScreen(viewModel: GitHubViewModel) {
                     value = prompt,
                     onValueChange = { prompt = it },
                     modifier = Modifier.fillMaxWidth(),
-                    placeholder = { Text("Describe the screen or app...") },
+                    placeholder = { Text("Describe the app or screen...") },
                     maxLines = 3,
                     shape = RoundedCornerShape(12.dp)
                 )
@@ -104,11 +106,11 @@ fun BuilderScreen(viewModel: GitHubViewModel) {
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     listOf(
+                        "Habit tracker with checklist",
                         "Note list with search",
                         "Login form email password",
-                        "Weather with Retrofit",
-                        "Todo list Room",
-                        "Simple settings screen"
+                        "Expense tracker Room",
+                        "Simple weather app"
                     ).forEach { p ->
                         SuggestionChip(
                             onClick = { prompt = p },
@@ -116,6 +118,39 @@ fun BuilderScreen(viewModel: GitHubViewModel) {
                         )
                     }
                 }
+
+                // Mode: code only vs complete app guide
+                Row(
+                    Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    FilterChip(
+                        selected = fullAppGuide,
+                        onClick = { fullAppGuide = true },
+                        label = { Text("Full app guide") },
+                        leadingIcon = {
+                            Icon(Icons.Default.MenuBook, null, Modifier.size(16.dp))
+                        }
+                    )
+                    FilterChip(
+                        selected = !fullAppGuide,
+                        onClick = { fullAppGuide = false },
+                        label = { Text("Code only") },
+                        leadingIcon = {
+                            Icon(Icons.Default.Code, null, Modifier.size(16.dp))
+                        }
+                    )
+                }
+
+                Text(
+                    if (fullAppGuide)
+                        "Guide = architecture + steps + Termux tips + starter code"
+                    else
+                        "Code only = screen / ViewModel / stubs",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
 
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -170,7 +205,7 @@ fun BuilderScreen(viewModel: GitHubViewModel) {
                         }) { Text("Clear saved key") }
                     }
                     Text(
-                        "Free from Google AI Studio. Template always works without a key.",
+                        "Free from Google AI Studio. Template + guide always work without a key.",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -205,7 +240,8 @@ fun BuilderScreen(viewModel: GitHubViewModel) {
                             useGemini = useGemini,
                             includeRoom = includeRoom,
                             includeHilt = includeHilt,
-                            includeWorkflows = includeWorkflows
+                            includeWorkflows = includeWorkflows,
+                            fullAppGuide = fullAppGuide
                         )
                     },
                     modifier = Modifier.fillMaxWidth().height(48.dp),
@@ -221,11 +257,18 @@ fun BuilderScreen(viewModel: GitHubViewModel) {
                         Spacer(Modifier.width(8.dp))
                         Text("Generating...")
                     } else {
-                        Icon(Icons.Default.AutoAwesome, null)
+                        Icon(
+                            if (fullAppGuide) Icons.Default.MenuBook else Icons.Default.AutoAwesome,
+                            null
+                        )
                         Spacer(Modifier.width(8.dp))
                         Text(
-                            if (useGemini && hasGemini) "Generate with Gemini (free)"
-                            else "Generate Kotlin (free template)"
+                            when {
+                                fullAppGuide && useGemini && hasGemini -> "Full guide + Gemini (free)"
+                                fullAppGuide -> "Full guide + Kotlin (free)"
+                                useGemini && hasGemini -> "Generate with Gemini (free)"
+                                else -> "Generate Kotlin (free template)"
+                            }
                         )
                     }
                 }
@@ -257,7 +300,7 @@ fun BuilderScreen(viewModel: GitHubViewModel) {
         } else if (!isLoading) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Text(
-                    "Hit Generate — free template always works.\nAdd a free Gemini key for smarter code.",
+                    "Full app guide = plan + steps + Termux tips + code.\nWorks offline; Gemini optional for smarter plans.",
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     style = MaterialTheme.typography.bodyMedium
                 )
@@ -296,7 +339,7 @@ private fun BuilderCodeExplorer(
                         Icon(
                             when (file.category) {
                                 "Workflow" -> Icons.Default.Build
-                                "Docs" -> Icons.Default.InsertDriveFile
+                                "Docs" -> Icons.Default.MenuBook
                                 else -> Icons.Default.Code
                             },
                             null,
