@@ -1,28 +1,36 @@
 # GitHub-Boss-Pro
 
-Clean production-ready multi-module Android project for **Total GitHub AI control**.
+**Phone-first tool** to make GitHub + Termux easier on Android.
 
-This is the official clean home for the Github Boss app.
+Control repos, issues, workflows, and notifications from your phone without needing a laptop.
 
 ---
 
-## Status (2026-08-18)
+## Status (2026-08-19)
 
 - Multi-module skeleton (`:app` + `:libs`) + buildSrc + version catalog ✅
-- Convention plugins apply ProjectConfig (compile/min/target SDK, Java 17) ✅
-- Modern Compose (Kotlin 2.0 Compose plugin) ✅
-- Working PAT login + repository list UI (already present) ✅
-- CI builds **this** repo (APK + AAB) ✅
-- Secure signing placeholders (secrets stay out of VCS) ✅
+- Convention plugins + ProjectConfig (SDK levels, Java 17) ✅
+- Modern Compose (Kotlin 2.0) ✅
+- PAT login + repository list UI ✅
+- CI builds this repo (APK + AAB) ✅
+- Secure signing placeholders (secrets out of VCS) ✅
 - Fastlane skeleton ✅
 - Detekt config ✅
-- Release workflow stub (manual, secrets-based) ✅
-- **Feature migration frozen** — nothing new added without explicit approval
+- Release workflow stub ✅
+- **Feature migration frozen** — nothing new without explicit approval
+
+## Purpose
+
+| This app **is** | This app is **not** |
+|-----------------|---------------------|
+| GitHub control from Android | Avatar / AI character app |
+| Termux-friendly workflow helper | Aura / Mandela product |
+| Clean production Android project | Desktop replacement |
 
 ## Quick start
 
 ```bash
-# Restore wrapper jar if missing (one-time)
+# One-time: restore wrapper jar if missing
 # curl -fsSL -o gradle/wrapper/gradle-wrapper.jar \
 #   https://raw.githubusercontent.com/gradle/gradle/v8.9.0/gradle/wrapper/gradle-wrapper.jar
 
@@ -53,9 +61,12 @@ GitHub-Boss-Pro/
 └── docs/                 # Documentation
 ```
 
-## Talk to Grok
+## Docs
 
-Just say you’re working on GitHub-Boss-Pro and the context is already loaded.
+- [Signing](docs/SIGNING.md)
+- [CI / CD](docs/CI.md)
+- [Detekt](docs/DETEKT.md)
+- [Gradle Wrapper](docs/WRAPPER.md)
 
 ---
 
