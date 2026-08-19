@@ -10,16 +10,24 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 sealed class AuthState {
-    object Unauthenticated : AuthState()
-    object Authenticating : AuthState()
+    data object Unauthenticated : AuthState()
+    data object Authenticating : AuthState()
     data class Authenticated(val user: GitHubUser) : AuthState()
     data class Error(val message: String) : AuthState()
 }
+
+/** Result of a code-gen run (template or Gemini). */
+data class CodeGenResult(
+    val files: List<GeneratedFile>,
+    val source: String, // "template" or "gemini"
+    val error: String? = null
+)
 
 class GitHubViewModel(application: Application) : AndroidViewModel(application) {
 
     private val tokenManager = TokenManager(application)
     private val gitHubRepo = GitHubRepository()
+    private val geminiService = GeminiCodeService()
 
     private val _authState = MutableStateFlow<AuthState>(AuthState.Unauthenticated)
     val authState: StateFlow<AuthState> = _authState.asStateFlow()
@@ -44,6 +52,9 @@ class GitHubViewModel(application: Application) : AndroidViewModel(application) 
 
     private val _repoCreationState = MutableStateFlow<ApiResult<GitHubRepo>?>(null)
     val repoCreationState: StateFlow<ApiResult<GitHubRepo>?> = _repoCreationState.asStateFlow()
+
+    private val _codeGenState = MutableStateFlow<ApiResult<CodeGenResult>?>(null)
+    val codeGenState: StateFlow<ApiResult<CodeGenResult>?> = _codeGenState.asStateFlow()
 
     private val _hasGeminiKey = MutableStateFlow(tokenManager.hasGeminiKey())
     val hasGeminiKey: StateFlow<Boolean> = _hasGeminiKey.asStateFlow()
@@ -178,6 +189,77 @@ class GitHubViewModel(application: Application) : AndroidViewModel(application) 
             _searchState.value = ApiResult.Loading
             _searchState.value = gitHubRepo.searchRepositories(token, query)
         }
+    }
+
+    /**
+     * Generate Kotlin code from a text prompt.
+     * - Free offline template always works (no key)
+     * - Optional free Gemini key for smarter output; falls back to template on error
+     */
+    fun generateCode(
+        prompt: String,
+        useGemini: Boolean,
+        includeRoom: Boolean,
+        includeHilt: Boolean,
+        includeWorkflows: Boolean,
+        includeGeminiStub: Boolean = false,
+        minSdk: String = "24",
+        packageName: String = "com.example"
+    ) {
+        viewModelScope.launch {
+            _codeGenState.value = ApiResult.Loading
+
+            val geminiKey = tokenManager.getGeminiKey()
+            if (useGemini && !geminiKey.isNullOrBlank()) {
+                when (val res = geminiService.generateKotlinCode(geminiKey, prompt, packageName)) {
+                    is ApiResult.Success -> {
+                        val kotlinFiles = GeminiCodeService.parseGeminiOutput(res.data)
+                        val generated = kotlinFiles.map {
+                            GeneratedFile(
+                                path = "app/src/main/java/${packageName.replace('.', '/')}/${it.path}",
+                                category = if (it.name.endsWith(".md")) "Docs" else "Kotlin",
+                                content = it.content
+                            )
+                        }
+                        val scaffold = generateProjectFiles(
+                            prompt, includeRoom, includeHilt, includeWorkflows, includeGeminiStub, minSdk, packageName
+                        ).filter { it.category != "Kotlin" }
+                        _codeGenState.value = ApiResult.Success(
+                            CodeGenResult(
+                                files = generated + scaffold,
+                                source = "gemini"
+                            )
+                        )
+                        return@launch
+                    }
+                    is ApiResult.Error -> {
+                        val template = generateProjectFiles(
+                            prompt, includeRoom, includeHilt, includeWorkflows, includeGeminiStub, minSdk, packageName
+                        )
+                        _codeGenState.value = ApiResult.Success(
+                            CodeGenResult(
+                                files = template,
+                                source = "template",
+                                error = "Gemini failed: ${res.message}. Used free template instead."
+                            )
+                        )
+                        return@launch
+                    }
+                    is ApiResult.Loading -> {}
+                }
+            }
+
+            val template = generateProjectFiles(
+                prompt, includeRoom, includeHilt, includeWorkflows, includeGeminiStub, minSdk, packageName
+            )
+            _codeGenState.value = ApiResult.Success(
+                CodeGenResult(files = template, source = "template")
+            )
+        }
+    }
+
+    fun clearCodeGenState() {
+        _codeGenState.value = null
     }
 
     fun getSavedToken(): String? = tokenManager.getToken()

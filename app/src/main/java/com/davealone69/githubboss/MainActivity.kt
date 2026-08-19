@@ -12,6 +12,8 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Logout
+import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
@@ -27,6 +29,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.davealone69.githubboss.data.ApiResult
 import com.davealone69.githubboss.data.GitHubRepo
 import com.davealone69.githubboss.ui.AuthState
+import com.davealone69.githubboss.ui.BuilderScreen
 import com.davealone69.githubboss.ui.GitHubViewModel
 
 class MainActivity : ComponentActivity() {
@@ -45,10 +48,13 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+private enum class AppTab { Repos, Builder }
+
 @Composable
 fun GitHubBossApp(viewModel: GitHubViewModel) {
     val authState by viewModel.authState.collectAsStateWithLifecycle()
     val reposState by viewModel.reposState.collectAsStateWithLifecycle()
+    var tab by remember { mutableStateOf(AppTab.Repos) }
 
     when (val state = authState) {
         is AuthState.Unauthenticated,
@@ -65,12 +71,36 @@ fun GitHubBossApp(viewModel: GitHubViewModel) {
             }
         }
         is AuthState.Authenticated -> {
-            HomeScreen(
-                userLogin = state.user.login,
-                reposState = reposState,
-                onRefresh = { viewModel.refreshData() },
-                onLogout = { viewModel.logout() }
-            )
+            Scaffold(
+                bottomBar = {
+                    NavigationBar {
+                        NavigationBarItem(
+                            selected = tab == AppTab.Repos,
+                            onClick = { tab = AppTab.Repos },
+                            icon = { Icon(Icons.Default.Home, contentDescription = "Repos") },
+                            label = { Text("Repos") }
+                        )
+                        NavigationBarItem(
+                            selected = tab == AppTab.Builder,
+                            onClick = { tab = AppTab.Builder },
+                            icon = { Icon(Icons.Default.AutoAwesome, contentDescription = "Builder") },
+                            label = { Text("Builder") }
+                        )
+                    }
+                }
+            ) { padding ->
+                Box(Modifier.fillMaxSize().padding(padding)) {
+                    when (tab) {
+                        AppTab.Repos -> HomeScreen(
+                            userLogin = state.user.login,
+                            reposState = reposState,
+                            onRefresh = { viewModel.refreshData() },
+                            onLogout = { viewModel.logout() }
+                        )
+                        AppTab.Builder -> BuilderScreen(viewModel = viewModel)
+                    }
+                }
+            }
         }
     }
 }
