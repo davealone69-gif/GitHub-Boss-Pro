@@ -27,6 +27,7 @@ class GitHubViewModel(application: Application) : AndroidViewModel(application) 
     private val tokenManager = TokenManager(application)
     private val gitHubRepo = GitHubRepository()
     private val geminiService = GeminiCodeService()
+    private val tipsStore = CodingTipsStore(application)
 
     private val _authState = MutableStateFlow<AuthState>(AuthState.Unauthenticated)
     val authState: StateFlow<AuthState> = _authState.asStateFlow()
@@ -61,8 +62,12 @@ class GitHubViewModel(application: Application) : AndroidViewModel(application) 
     private val _helpState = MutableStateFlow<HelpCoach.HelpAnswer?>(null)
     val helpState: StateFlow<HelpCoach.HelpAnswer?> = _helpState.asStateFlow()
 
+    private val _tipsState = MutableStateFlow<List<CodingTipsStore.Tip>>(emptyList())
+    val tipsState: StateFlow<List<CodingTipsStore.Tip>> = _tipsState.asStateFlow()
+
     init {
         checkSavedToken()
+        refreshTips()
     }
 
     fun checkSavedToken() {
@@ -193,18 +198,59 @@ class GitHubViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
-    /** Offline help Q&A about the app / GitHub / Termux (not only code gen). */
-    fun askHelp(question: String) {
-        _helpState.value = HelpCoach.answer(question)
+    fun refreshTips() {
+        _tipsState.value = tipsStore.all()
     }
 
-    /** Generate Termux command snippets from a short topic. */
+    fun addCodingTip(title: String, body: String, tags: String = "") {
+        if (title.isBlank() || body.isBlank()) return
+        tipsStore.add(title, body, tags)
+        refreshTips()
+    }
+
+    fun removeCodingTip(id: String) {
+        tipsStore.remove(id)
+        refreshTips()
+    }
+
+    /** Offline help Q&A; appends matching saved coding tips. */
+    fun askHelp(question: String) {
+        val base = HelpCoach.answer(question)
+        val matched = tipsStore.search(question).take(5)
+        val tipBlock = if (matched.isNotEmpty()) {
+            buildString {
+                appendLine()
+                appendLine()
+                appendLine("From your coding tips:")
+                matched.forEach { t ->
+                    appendLine("• ${t.title}: ${t.body}")
+                }
+            }
+        } else {
+            val allCtx = tipsStore.asContextBlock(3)
+            if (allCtx.isNotBlank()) "\n\n$allCtx" else ""
+        }
+        _helpState.value = base.copy(body = base.body + tipBlock)
+    }
+
     fun generateTermuxCommands(topic: String) {
         val snippets = TermuxCommandGenerator.generate(topic)
+        val tipExtra = tipsStore.search(topic).take(3).joinToString("\n") {
+            "# tip: ${it.title} — ${it.body}"
+        }
+        val body = buildString {
+            appendLine("Tap a command to copy. Paste into Termux.")
+            appendLine()
+            append(TermuxCommandGenerator.toShellFile(snippets))
+            if (tipExtra.isNotBlank()) {
+                appendLine()
+                appendLine("# --- your tips ---")
+                appendLine(tipExtra)
+            }
+        }
         _helpState.value = HelpCoach.HelpAnswer(
             title = "Termux: $topic",
-            body = "Tap a command to copy. Paste into Termux.\n\n" +
-                TermuxCommandGenerator.toShellFile(snippets),
+            body = body,
             termuxCommands = snippets
         )
     }
