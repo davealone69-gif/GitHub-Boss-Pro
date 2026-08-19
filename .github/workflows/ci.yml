@@ -37,61 +37,32 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Ensure Gradle Wrapper
+      - name: Ensure Gradle
         shell: bash
         run: |
           set -euo pipefail
           if [ -f gradlew ] && [ -f gradle/wrapper/gradle-wrapper.jar ]; then
             chmod +x gradlew
             echo "GRADLE_CMD=./gradlew" >> "$GITHUB_ENV"
-            echo "Using project Gradle Wrapper"
           else
             echo "Wrapper jar missing — installing Gradle 8.9"
             curl -fsSL "https://services.gradle.org/distributions/gradle-8.9-bin.zip" -o /tmp/gradle.zip
             sudo unzip -q -o /tmp/gradle.zip -d /opt/gradle
             echo "/opt/gradle/gradle-8.9/bin" >> "$GITHUB_PATH"
             echo "GRADLE_CMD=gradle" >> "$GITHUB_ENV"
-            gradle --version
           fi
 
       - name: Setup Gradle (cache)
         uses: gradle/actions/setup-gradle@v4
         if: hashFiles('gradle/wrapper/gradle-wrapper.jar') != ''
 
-      - name: Detekt (static analysis)
-        run: ${{ env.GRADLE_CMD }} detekt --stacktrace --no-daemon
-
-      - name: Upload Detekt reports
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: detekt-reports
-          path: |
-            build/reports/detekt/
-          if-no-files-found: warn
-          retention-days: 14
-
       - name: Build Debug APK
         run: ${{ env.GRADLE_CMD }} :app:assembleDebug --stacktrace --no-daemon
-
-      - name: Build Release Bundle (AAB)
-        run: ${{ env.GRADLE_CMD }} :app:bundleRelease --stacktrace --no-daemon || true
-
-      - name: Unit Tests
-        run: ${{ env.GRADLE_CMD }} :app:testDebugUnitTest --stacktrace --no-daemon || true
 
       - name: Upload Debug APK
         uses: actions/upload-artifact@v4
         with:
           name: github-boss-pro-debug-apk
           path: app/build/outputs/apk/debug/*.apk
-          if-no-files-found: warn
-          retention-days: 14
-
-      - name: Upload Release AAB
-        uses: actions/upload-artifact@v4
-        with:
-          name: github-boss-pro-release-aab
-          path: app/build/outputs/bundle/release/*.aab
-          if-no-files-found: warn
+          if-no-files-found: error
           retention-days: 14

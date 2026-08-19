@@ -25,11 +25,8 @@ tasks.withType<io.gitlab.arturbosch.detekt.Detekt>().configureEach {
         html.required.set(true)
         xml.required.set(true)
         txt.required.set(true)
-        sarif.required.set(false)
         md.required.set(true)
     }
-    // Baseline-friendly: report issues without failing the whole build yet.
-    // Set to false when the codebase is clean enough for a hard gate.
     ignoreFailures = true
 }
 

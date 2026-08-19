@@ -1,21 +1,25 @@
 plugins {
-    id("githubboss.android.application")
+    alias(libs.plugins.android.application)
+    alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
 }
 
 android {
     namespace = "com.davealone69.githubboss"
+    compileSdk = ProjectConfig.COMPILE_SDK
 
     defaultConfig {
         applicationId = ProjectConfig.APPLICATION_ID
+        minSdk = ProjectConfig.MIN_SDK
+        targetSdk = ProjectConfig.TARGET_SDK
         versionCode = ProjectConfig.VERSION_CODE
         versionName = ProjectConfig.VERSION_NAME
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables { useSupportLibrary = true }
     }
 
     signingConfigs {
         create("release") {
-            // Secrets via CI env or local gradle.properties (never commit real values)
             val storeFilePath = System.getenv("KEYSTORE_PATH") ?: project.findProperty("KEYSTORE_PATH") as String?
             val storePassword = System.getenv("KEYSTORE_PASSWORD") ?: project.findProperty("KEYSTORE_PASSWORD") as String?
             val keyAlias = System.getenv("KEY_ALIAS") ?: project.findProperty("KEY_ALIAS") as String?
@@ -32,8 +36,8 @@ android {
 
     buildTypes {
         release {
-            isMinifyEnabled = true
-            isShrinkResources = true
+            isMinifyEnabled = false
+            isShrinkResources = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -44,6 +48,15 @@ android {
             applicationIdSuffix = ".debug"
             versionNameSuffix = "-debug"
         }
+    }
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+
+    kotlinOptions {
+        jvmTarget = "17"
     }
 
     buildFeatures {
