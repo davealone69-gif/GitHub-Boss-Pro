@@ -9,15 +9,14 @@ Control repos, issues, workflows, and notifications from your phone without need
 ## Status (2026-08-19)
 
 - Multi-module skeleton (`:app` + `:libs`) + buildSrc + version catalog ✅
-- Convention plugins + ProjectConfig (SDK levels, Java 17) ✅
+- Convention plugins + ProjectConfig (SDK levels, Java 17) ✅ applied
 - Modern Compose (Kotlin 2.0) ✅
-- PAT login + repository list UI ✅
-- CI builds this repo (APK + AAB) ✅
+- PAT login + repos / issues / workflows / notifications ✅
+- Builder (template + free Gemini) + Help / Termux coach ✅
+- CI builds this repo (APK + AAB) + detekt ✅
 - Secure signing placeholders (secrets out of VCS) ✅
 - Fastlane skeleton ✅
-- Detekt config ✅
-- Release workflow stub ✅
-- **Feature migration frozen** — nothing new without explicit approval
+- Feature migration from old `GitHub-Boss` ✅ (avatar intentionally not ported)
 
 ## Purpose
 
@@ -36,6 +35,7 @@ Control repos, issues, workflows, and notifications from your phone without need
 
 ./gradlew assembleDebug
 ./gradlew bundleRelease
+./gradlew detekt
 ```
 
 ## Required PAT scopes
@@ -58,6 +58,8 @@ GitHub-Boss-Pro/
 ├── fastlane/             # Play Store / build lanes
 ├── config/detekt/        # Static analysis config
 ├── .github/workflows/    # CI + release
+├── GEMINI-FREE.md        # Free Gemini key guide
+├── TERMUX-COMMANDS.md    # Phone/Termux build commands
 └── docs/                 # Documentation
 ```
 
@@ -67,6 +69,8 @@ GitHub-Boss-Pro/
 - [CI / CD](docs/CI.md)
 - [Detekt](docs/DETEKT.md)
 - [Gradle Wrapper](docs/WRAPPER.md)
+- [Free Gemini](GEMINI-FREE.md)
+- [Termux commands](TERMUX-COMMANDS.md)
 
 ---
 

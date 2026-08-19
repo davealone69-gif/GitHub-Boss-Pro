@@ -1,20 +1,15 @@
 plugins {
-    alias(libs.plugins.android.application)
-    alias(libs.plugins.kotlin.android)
+    id("githubboss.android.application")
     alias(libs.plugins.kotlin.compose)
 }
 
 android {
     namespace = "com.davealone69.githubboss"
-    compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.davealone69.githubboss"
-        minSdk = 24
-        targetSdk = 35
-        versionCode = 1
-        versionName = "1.0.0"
-        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        applicationId = ProjectConfig.APPLICATION_ID
+        versionCode = ProjectConfig.VERSION_CODE
+        versionName = ProjectConfig.VERSION_NAME
         vectorDrawables { useSupportLibrary = true }
     }
 
@@ -49,15 +44,6 @@ android {
             applicationIdSuffix = ".debug"
             versionNameSuffix = "-debug"
         }
-    }
-
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
-    }
-
-    kotlinOptions {
-        jvmTarget = "17"
     }
 
     buildFeatures {

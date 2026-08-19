@@ -58,6 +58,9 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
         if: hashFiles('gradle/wrapper/gradle-wrapper.jar') != ''
 
+      - name: Detekt
+        run: ${{ env.GRADLE_CMD }} detekt --stacktrace --no-daemon || true
+
       - name: Build Debug APK
         run: ${{ env.GRADLE_CMD }} :app:assembleDebug --stacktrace --no-daemon
 
