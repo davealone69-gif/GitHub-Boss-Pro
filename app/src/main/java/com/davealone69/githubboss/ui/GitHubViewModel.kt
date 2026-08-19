@@ -16,10 +16,9 @@ sealed class AuthState {
     data class Error(val message: String) : AuthState()
 }
 
-/** Result of a code-gen / guide run (template or Gemini). */
 data class CodeGenResult(
     val files: List<GeneratedFile>,
-    val source: String, // "template" or "gemini"
+    val source: String,
     val error: String? = null
 )
 
@@ -58,6 +57,9 @@ class GitHubViewModel(application: Application) : AndroidViewModel(application) 
 
     private val _hasGeminiKey = MutableStateFlow(tokenManager.hasGeminiKey())
     val hasGeminiKey: StateFlow<Boolean> = _hasGeminiKey.asStateFlow()
+
+    private val _helpState = MutableStateFlow<HelpCoach.HelpAnswer?>(null)
+    val helpState: StateFlow<HelpCoach.HelpAnswer?> = _helpState.asStateFlow()
 
     init {
         checkSavedToken()
@@ -191,22 +193,42 @@ class GitHubViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
+    /** Offline help Q&A about the app / GitHub / Termux (not only code gen). */
+    fun askHelp(question: String) {
+        _helpState.value = HelpCoach.answer(question)
+    }
+
+    /** Generate Termux command snippets from a short topic. */
+    fun generateTermuxCommands(topic: String) {
+        val snippets = TermuxCommandGenerator.generate(topic)
+        _helpState.value = HelpCoach.HelpAnswer(
+            title = "Termux: $topic",
+            body = "Tap a command to copy. Paste into Termux.\n\n" +
+                TermuxCommandGenerator.toShellFile(snippets),
+            termuxCommands = snippets
+        )
+    }
+
     private fun mapParsedToGenerated(
         parsed: List<KotlinCodeMaker.KotlinFile>,
         packageName: String
     ): List<GeneratedFile> {
         return parsed.map { file ->
-            val isDoc = file.name.endsWith(".md") || file.path.startsWith("docs/")
-            val path = if (isDoc) {
-                file.path.removePrefix("app/src/main/java/").let {
-                    if (it.startsWith("docs/")) it else file.path
-                }.let { p -> if (p.startsWith("docs/")) p else "docs/${file.name}" }
-            } else {
-                "app/src/main/java/${packageName.replace('.', '/')}/${file.path}"
+            val isDoc = file.name.endsWith(".md") || file.path.startsWith("docs/") ||
+                file.path.startsWith("termux/") || file.name.endsWith(".sh")
+            val path = when {
+                file.path.startsWith("docs/") || file.path.startsWith("termux/") -> file.path
+                isDoc && file.name.endsWith(".sh") -> "termux/${file.name}"
+                isDoc -> if (file.path.startsWith("docs/")) file.path else "docs/${file.name}"
+                else -> "app/src/main/java/${packageName.replace('.', '/')}/${file.path}"
             }
             GeneratedFile(
                 path = path,
-                category = if (isDoc) "Docs" else "Kotlin",
+                category = when {
+                    path.startsWith("termux/") || file.name.endsWith(".sh") -> "Config"
+                    isDoc -> "Docs"
+                    else -> "Kotlin"
+                },
                 content = file.content
             )
         }
@@ -236,12 +258,6 @@ class GitHubViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
-    /**
-     * Generate Kotlin code and/or a complete app guide from a text prompt.
-     * - Free offline template always works (no key)
-     * - Optional free Gemini key for smarter output; falls back to template on error
-     * - [fullAppGuide] adds architecture plan, step-by-step build, Termux tips
-     */
     fun generateCode(
         prompt: String,
         useGemini: Boolean,
