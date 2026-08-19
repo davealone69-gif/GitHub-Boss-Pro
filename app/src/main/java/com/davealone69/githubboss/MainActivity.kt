@@ -13,6 +13,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.Help
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Refresh
@@ -31,6 +32,7 @@ import com.davealone69.githubboss.data.GitHubRepo
 import com.davealone69.githubboss.ui.AuthState
 import com.davealone69.githubboss.ui.BuilderScreen
 import com.davealone69.githubboss.ui.GitHubViewModel
+import com.davealone69.githubboss.ui.HelpScreen
 
 class MainActivity : ComponentActivity() {
     private val viewModel: GitHubViewModel by viewModels()
@@ -48,7 +50,7 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-private enum class AppTab { Repos, Builder }
+private enum class AppTab { Repos, Builder, Help }
 
 @Composable
 fun GitHubBossApp(viewModel: GitHubViewModel) {
@@ -86,6 +88,12 @@ fun GitHubBossApp(viewModel: GitHubViewModel) {
                             icon = { Icon(Icons.Default.AutoAwesome, contentDescription = "Builder") },
                             label = { Text("Builder") }
                         )
+                        NavigationBarItem(
+                            selected = tab == AppTab.Help,
+                            onClick = { tab = AppTab.Help },
+                            icon = { Icon(Icons.Default.Help, contentDescription = "Help") },
+                            label = { Text("Help") }
+                        )
                     }
                 }
             ) { padding ->
@@ -98,6 +106,7 @@ fun GitHubBossApp(viewModel: GitHubViewModel) {
                             onLogout = { viewModel.logout() }
                         )
                         AppTab.Builder -> BuilderScreen(viewModel = viewModel)
+                        AppTab.Help -> HelpScreen(viewModel = viewModel)
                     }
                 }
             }
