@@ -1,17 +1,18 @@
 # Detekt
 
-Config lives at `config/detekt/detekt.yml`.
+Static analysis for Kotlin sources in `:app` and `:libs`.
 
-## Local run (once detekt is applied in build)
+## Local
 
 ```bash
-./gradlew detekt
+./gradlew detekt --no-daemon
 ```
 
-## Status
+Config: `config/detekt/detekt.yml`
 
-- Config file present ✅
-- Plugin declared in version catalog ✅
-- Not yet applied as a hard CI gate (to keep skeleton green while features are frozen)
+## CI
 
-When ready, add to root or module build files and enable the gate in `ci.yml`.
+The main `CI` workflow runs `detekt` before the debug APK build.
+Failures are currently non-blocking (`|| true`) so phone-first builds stay green while rules are tuned.
+
+Tighten later by removing `|| true` once the baseline is clean.
