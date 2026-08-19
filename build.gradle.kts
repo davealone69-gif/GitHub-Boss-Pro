@@ -9,6 +9,7 @@ plugins {
 detekt {
     buildUponDefaultConfig = true
     allRules = false
+    parallel = true
     config.setFrom(files("$rootDir/config/detekt/detekt.yml"))
     source.setFrom(
         files(
@@ -16,6 +17,20 @@ detekt {
             "$rootDir/libs/src"
         )
     )
+}
+
+tasks.withType<io.gitlab.arturbosch.detekt.Detekt>().configureEach {
+    jvmTarget = "17"
+    reports {
+        html.required.set(true)
+        xml.required.set(true)
+        txt.required.set(true)
+        sarif.required.set(false)
+        md.required.set(true)
+    }
+    // Baseline-friendly: report issues without failing the whole build yet.
+    // Set to false when the codebase is clean enough for a hard gate.
+    ignoreFailures = true
 }
 
 dependencies {

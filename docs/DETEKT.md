@@ -1,18 +1,31 @@
 # Detekt
 
-Static analysis for Kotlin sources in `:app` and `:libs`.
+Static analysis for Kotlin sources under `app/src` and `libs/src`.
+
+## Config
+
+- Rules: `config/detekt/detekt.yml`
+- Root plugin: `build.gradle.kts` (detekt + formatting plugin)
+- Reports: HTML / XML / TXT / MD under `build/reports/detekt/`
 
 ## Local
 
 ```bash
-./gradlew detekt --no-daemon
+./gradlew detekt
 ```
-
-Config: `config/detekt/detekt.yml`
 
 ## CI
 
-The main `CI` workflow runs `detekt` before the debug APK build.
-Failures are currently non-blocking (`|| true`) so phone-first builds stay green while rules are tuned.
+`.github/workflows/ci.yml` runs `detekt` and uploads `detekt-reports` artifact.
 
-Tighten later by removing `|| true` once the baseline is clean.
+Currently `ignoreFailures = true` so issues are **reported without failing the build** (baseline phase).
+
+### Harden later
+
+In root `build.gradle.kts`:
+
+```kotlin
+ignoreFailures = false
+```
+
+And lower `maxIssues` in `detekt.yml` once the report is clean.
