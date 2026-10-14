@@ -46,7 +46,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if [ -f gradlew ] && [ -f gradle/wrapper/gradle-wrapper.jar ]; then
+          if [ -f gradlew ] && [ -f gradle/wrapper/gradle-wrapper.jar ] && jar tf gradle/wrapper/gradle-wrapper.jar >/dev/null 2>&1; then
             chmod +x gradlew
             echo "GRADLE_CMD=./gradlew" >> "$GITHUB_ENV"
           else
