@@ -63,7 +63,6 @@ echo "sdk.dir=$HOME/android-sdk" > local.properties
 ./gradlew --stop
 rm -rf ~/.gradle/caches/ .gradle/
 ./gradlew clean assembleDebug --no-daemon --refresh-dependencies
-./gradlew detekt --no-daemon
 ```
 
 ## 5. Java check
