@@ -5,13 +5,13 @@ import org.junit.Test
 
 class KotlinCodeMakerTest {
     @Test
-    fun generatedFormKeepsInputInterpolationForGeneratedCode() {
+    fun generatedFormConcatenatesSubmittedValueAtRuntime() {
         val generated = KotlinCodeMaker.generate("login form")
             .single { it.name == "LoginViewModel.kt" }
 
         assertTrue(
             "Generated Kotlin must interpolate the submitted value at runtime",
-            generated.content.contains("message = \"Submitted: \\$text\""),
+            generated.content.contains("message = \"Submitted: \" + text"),
         )
     }
 
