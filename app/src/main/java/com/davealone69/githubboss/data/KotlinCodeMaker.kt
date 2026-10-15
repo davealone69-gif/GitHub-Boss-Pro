@@ -682,7 +682,7 @@ data class AppEntity(
 # Generated from: "$clean"
 
 ## Files
-${files.filter { it.name.endsWith(".kt") }.joinToString("\n") { "- `${it.path}`" }}
+${files.filter { it.name.endsWith(".kt") }.joinToString("\n") { "- " + "`" + it.path + "`" }}
 
 ## How to use
 1. Copy the `.kt` files into your Android project under the matching package.
