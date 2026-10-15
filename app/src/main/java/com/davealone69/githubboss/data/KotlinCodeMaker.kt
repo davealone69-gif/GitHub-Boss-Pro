@@ -103,7 +103,7 @@ class $viewModelName : ViewModel() {
             _uiState.update { it.copy(error = "Input cannot be empty") }
             return
         }
-        _uiState.update { it.copy(message = "Submitted: ${'
+        _uiState.update { it.copy(message = "Submitted: " + text, error = null) }
     }
     """.trimIndent() else ""}
 }
