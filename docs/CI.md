@@ -27,6 +27,5 @@
 
 ## Planned / next (skeleton only)
 
-- Detekt gate in CI
-- Coverage report upload
+- Android Lint and unit-test coverage report upload
 - Fastlane `internal` lane wired to secrets

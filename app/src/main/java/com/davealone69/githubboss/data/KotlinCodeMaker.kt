@@ -103,7 +103,359 @@ class $viewModelName : ViewModel() {
             _uiState.update { it.copy(error = "Input cannot be empty") }
             return
         }
-        _uiState.update { it.copy(message = "Submitted: \$text", error = null) }
+        _uiState.update { it.copy(message = "Submitted: " + text, error = null) }
+    }
+    """.trimIndent() else ""}
+}
+            """.trimIndent()
+        )
+
+        files += KotlinFile(
+            path = "ui/$className.kt",
+            name = "$className.kt",
+            content = buildScreen(packageName, className, viewModelName, stateName, wantsList, wantsForm)
+        )
+
+        if (wantsApi) {
+            files += KotlinFile(
+                path = "data/ApiService.kt",
+                name = "ApiService.kt",
+                content = """
+package $packageName.data
+
+import retrofit2.http.GET
+
+interface ApiService {
+    @GET("endpoint")
+    suspend fun fetchData(): List<String>
+}
+                """.trimIndent()
+            )
+        }
+
+        if (wantsRoom) {
+            files += KotlinFile(
+                path = "data/AppEntity.kt",
+                name = "AppEntity.kt",
+                content = """
+package $packageName.data
+
+import androidx.room.Entity
+import androidx.room.PrimaryKey
+
+@Entity(tableName = "items")
+data class AppEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val title: String,
+    val createdAt: Long = System.currentTimeMillis()
+)
+                """.trimIndent()
+            )
+        }
+
+        val generatedFileList = files.filter { it.name.endsWith(".kt") }.joinToString("\n") { "- " + "`" + it.path + "`" }
+        val generatedFileList = files.filter { it.name.endsWith(".kt") }
+            .joinToString("\n") { "- `${it.path}`" }
+
+        files += KotlinFile(
+            path = "USAGE.md",
+            name = "USAGE.md",
+            content = """
+# Generated from: "$clean"
+
+## Files
+$generatedFileList
+
+## How to use
+1. Copy the `.kt` files into your Android project under the matching package.
+2. In your Activity / NavHost:
+
+```kotlin
+val vm: $viewModelName = viewModel()
+$className(viewModel = vm)
+```
+
+3. Call `vm.refresh()` when the screen appears if you want auto-load.
+
+Offline template always works. For smarter code, add a free Gemini key (Google AI Studio).
+            """.trimIndent()
+        )
+
+        return files
+    }
+
+    private fun buildScreen(
+        packageName: String,
+        className: String,
+        viewModelName: String,
+        stateName: String,
+        wantsList: Boolean,
+        wantsForm: Boolean
+    ): String {
+        return """
+package $packageName.ui
+
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+
+@Composable
+fun $className(
+    viewModel: $viewModelName,
+    modifier: Modifier = Modifier
+) {
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
+
+    LaunchedEffect(Unit) {
+        viewModel.refresh()
+    }
+
+    Scaffold(
+        topBar = {
+            TopAppBar(title = { Text(state.title) })
+        }
+    ) { padding ->
+        Column(
+            modifier = modifier
+                .fillMaxSize()
+                .padding(padding)
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            if (state.isLoading) {
+                LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+            }
+
+            state.error?.let { err ->
+                Text(text = err, color = MaterialTheme.colorScheme.error)
+            }
+
+            Text(text = state.message, style = MaterialTheme.typography.bodyLarge)
+
+            ${if (wantsForm) """
+            OutlinedTextField(
+                value = state.inputText,
+                onValueChange = viewModel::onInputChange,
+                label = { Text("Input") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
+            )
+            Button(
+                onClick = viewModel::submit,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Submit")
+            }
+            """.trimIndent() else ""}
+
+            ${if (wantsList) """
+            LazyColumn(
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.weight(1f)
+            ) {
+                items(state.items) { item ->
+                    Card(modifier = Modifier.fillMaxWidth()) {
+                        Text(
+                            text = item,
+                            modifier = Modifier.padding(16.dp)
+                        )
+                    }
+                }
+            }
+            """.trimIndent() else ""}
+
+            Button(
+                onClick = viewModel::refresh,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Refresh")
+            }
+        }
+    }
+}
+        """.trimIndent()
+    }
+}
+}text", error = null) }
+    }
+    """.trimIndent() else ""}
+}
+            """.trimIndent()
+        )
+
+        files += KotlinFile(
+            path = "ui/$className.kt",
+            name = "$className.kt",
+            content = buildScreen(packageName, className, viewModelName, stateName, wantsList, wantsForm)
+        )
+
+        if (wantsApi) {
+            files += KotlinFile(
+                path = "data/ApiService.kt",
+                name = "ApiService.kt",
+                content = """
+package $packageName.data
+
+import retrofit2.http.GET
+
+interface ApiService {
+    @GET("endpoint")
+    suspend fun fetchData(): List<String>
+}
+                """.trimIndent()
+            )
+        }
+
+        if (wantsRoom) {
+            files += KotlinFile(
+                path = "data/AppEntity.kt",
+                name = "AppEntity.kt",
+                content = """
+package $packageName.data
+
+import androidx.room.Entity
+import androidx.room.PrimaryKey
+
+@Entity(tableName = "items")
+data class AppEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val title: String,
+    val createdAt: Long = System.currentTimeMillis()
+)
+                """.trimIndent()
+            )
+        }
+
+        files += KotlinFile(
+            path = "USAGE.md",
+            name = "USAGE.md",
+            content = """
+# Generated from: "$clean"
+
+## Files
+$generatedFileList
+
+## How to use
+1. Copy the `.kt` files into your Android project under the matching package.
+2. In your Activity / NavHost:
+
+```kotlin
+val vm: $viewModelName = viewModel()
+$className(viewModel = vm)
+```
+
+3. Call `vm.refresh()` when the screen appears if you want auto-load.
+
+Offline template always works. For smarter code, add a free Gemini key (Google AI Studio).
+            """.trimIndent()
+        )
+
+        return files
+    }
+
+    private fun buildScreen(
+        packageName: String,
+        className: String,
+        viewModelName: String,
+        stateName: String,
+        wantsList: Boolean,
+        wantsForm: Boolean
+    ): String {
+        return """
+package $packageName.ui
+
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+
+@Composable
+fun $className(
+    viewModel: $viewModelName,
+    modifier: Modifier = Modifier
+) {
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
+
+    LaunchedEffect(Unit) {
+        viewModel.refresh()
+    }
+
+    Scaffold(
+        topBar = {
+            TopAppBar(title = { Text(state.title) })
+        }
+    ) { padding ->
+        Column(
+            modifier = modifier
+                .fillMaxSize()
+                .padding(padding)
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            if (state.isLoading) {
+                LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+            }
+
+            state.error?.let { err ->
+                Text(text = err, color = MaterialTheme.colorScheme.error)
+            }
+
+            Text(text = state.message, style = MaterialTheme.typography.bodyLarge)
+
+            ${if (wantsForm) """
+            OutlinedTextField(
+                value = state.inputText,
+                onValueChange = viewModel::onInputChange,
+                label = { Text("Input") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
+            )
+            Button(
+                onClick = viewModel::submit,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Submit")
+            }
+            """.trimIndent() else ""}
+
+            ${if (wantsList) """
+            LazyColumn(
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.weight(1f)
+            ) {
+                items(state.items) { item ->
+                    Card(modifier = Modifier.fillMaxWidth()) {
+                        Text(
+                            text = item,
+                            modifier = Modifier.padding(16.dp)
+                        )
+                    }
+                }
+            }
+            """.trimIndent() else ""}
+
+            Button(
+                onClick = viewModel::refresh,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Refresh")
+            }
+        }
+    }
+}
+        """.trimIndent()
+    }
+}
+}text", error = null) }
     }
     """.trimIndent() else ""}
 }
@@ -161,6 +513,180 @@ data class AppEntity(
 
 ## Files
 ${files.filter { it.name.endsWith(".kt") }.joinToString("\n") { "- `${it.path}`" }}
+
+## How to use
+1. Copy the `.kt` files into your Android project under the matching package.
+2. In your Activity / NavHost:
+
+```kotlin
+val vm: $viewModelName = viewModel()
+$className(viewModel = vm)
+```
+
+3. Call `vm.refresh()` when the screen appears if you want auto-load.
+
+Offline template always works. For smarter code, add a free Gemini key (Google AI Studio).
+            """.trimIndent()
+        )
+
+        return files
+    }
+
+    private fun buildScreen(
+        packageName: String,
+        className: String,
+        viewModelName: String,
+        stateName: String,
+        wantsList: Boolean,
+        wantsForm: Boolean
+    ): String {
+        return """
+package $packageName.ui
+
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+
+@Composable
+fun $className(
+    viewModel: $viewModelName,
+    modifier: Modifier = Modifier
+) {
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
+
+    LaunchedEffect(Unit) {
+        viewModel.refresh()
+    }
+
+    Scaffold(
+        topBar = {
+            TopAppBar(title = { Text(state.title) })
+        }
+    ) { padding ->
+        Column(
+            modifier = modifier
+                .fillMaxSize()
+                .padding(padding)
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            if (state.isLoading) {
+                LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+            }
+
+            state.error?.let { err ->
+                Text(text = err, color = MaterialTheme.colorScheme.error)
+            }
+
+            Text(text = state.message, style = MaterialTheme.typography.bodyLarge)
+
+            ${if (wantsForm) """
+            OutlinedTextField(
+                value = state.inputText,
+                onValueChange = viewModel::onInputChange,
+                label = { Text("Input") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
+            )
+            Button(
+                onClick = viewModel::submit,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Submit")
+            }
+            """.trimIndent() else ""}
+
+            ${if (wantsList) """
+            LazyColumn(
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.weight(1f)
+            ) {
+                items(state.items) { item ->
+                    Card(modifier = Modifier.fillMaxWidth()) {
+                        Text(
+                            text = item,
+                            modifier = Modifier.padding(16.dp)
+                        )
+                    }
+                }
+            }
+            """.trimIndent() else ""}
+
+            Button(
+                onClick = viewModel::refresh,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Refresh")
+            }
+        }
+    }
+}
+        """.trimIndent()
+    }
+}
+}text", error = null) }
+    }
+    """.trimIndent() else ""}
+}
+            """.trimIndent()
+        )
+
+        files += KotlinFile(
+            path = "ui/$className.kt",
+            name = "$className.kt",
+            content = buildScreen(packageName, className, viewModelName, stateName, wantsList, wantsForm)
+        )
+
+        if (wantsApi) {
+            files += KotlinFile(
+                path = "data/ApiService.kt",
+                name = "ApiService.kt",
+                content = """
+package $packageName.data
+
+import retrofit2.http.GET
+
+interface ApiService {
+    @GET("endpoint")
+    suspend fun fetchData(): List<String>
+}
+                """.trimIndent()
+            )
+        }
+
+        if (wantsRoom) {
+            files += KotlinFile(
+                path = "data/AppEntity.kt",
+                name = "AppEntity.kt",
+                content = """
+package $packageName.data
+
+import androidx.room.Entity
+import androidx.room.PrimaryKey
+
+@Entity(tableName = "items")
+data class AppEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val title: String,
+    val createdAt: Long = System.currentTimeMillis()
+)
+                """.trimIndent()
+            )
+        }
+
+        files += KotlinFile(
+            path = "USAGE.md",
+            name = "USAGE.md",
+            content = """
+# Generated from: "$clean"
+
+## Files
+${files.filter { it.name.endsWith(".kt") }.joinToString("\n") { "- " + "`" + it.path + "`" }}
 
 ## How to use
 1. Copy the `.kt` files into your Android project under the matching package.

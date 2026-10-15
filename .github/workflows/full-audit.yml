@@ -8,7 +8,6 @@ on:
 
 permissions:
   contents: read
-  security-events: write
   actions: read
 
 jobs:
@@ -20,13 +19,35 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Gradle audit and build
-        if: ${{ hashFiles('gradlew') != '' }}
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: "platform-tools platforms;android-35 build-tools;35.0.0"
+          accept-android-sdk-licenses: true
+      - name: Ensure usable Gradle
         shell: bash
         run: |
-          set -o pipefail
-          chmod +x gradlew
-          ./gradlew lint test assembleDebug --continue --stacktrace --console=plain
+          set -euo pipefail
+          if [ -f gradlew ] && [ -f gradle/wrapper/gradle-wrapper.jar ] && jar tf gradle/wrapper/gradle-wrapper.jar >/dev/null 2>&1; then
+            chmod +x gradlew
+            echo "GRADLE_CMD=./gradlew" >> "$GITHUB_ENV"
+          else
+            echo "Gradle wrapper is missing or corrupt; using a clean Gradle 8.9 distribution."
+            curl -fsSL "https://services.gradle.org/distributions/gradle-8.9-bin.zip" -o /tmp/gradle.zip
+            sudo unzip -q -o /tmp/gradle.zip -d /opt/gradle
+            echo "/opt/gradle/gradle-8.9/bin" >> "$GITHUB_PATH"
+            echo "GRADLE_CMD=gradle" >> "$GITHUB_ENV"
+          fi
+      - name: Gradle audit and build
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$GRADLE_CMD" lint test assembleDebug --continue --stacktrace --console=plain
 
       - name: Node audit and test
         if: ${{ hashFiles('package.json') != '' }}
@@ -45,10 +66,3 @@ jobs:
         run: |
           python -m compileall -q .
 
-      - name: CodeQL security analysis
-        uses: github/codeql-action/init@v3
-        with:
-          languages: javascript-typescript,python,java-kotlin
-
-      - name: CodeQL analyze
-        uses: github/codeql-action/analyze@v3

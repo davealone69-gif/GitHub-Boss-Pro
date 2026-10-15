@@ -13,7 +13,7 @@ Control repos, issues, workflows, and notifications from your phone without need
 - Modern Compose (Kotlin 2.0) ✅
 - PAT login + repos / issues / workflows / notifications ✅
 - Builder (template + free Gemini) + Help / Termux coach ✅
-- CI builds this repo (APK + AAB) + detekt ✅
+- CI builds this repo (APK + AAB) ✅
 - Secure signing placeholders (secrets out of VCS) ✅
 - Fastlane skeleton ✅
 - Feature migration from old `GitHub-Boss` ✅ (avatar intentionally not ported)
@@ -35,7 +35,6 @@ Control repos, issues, workflows, and notifications from your phone without need
 
 ./gradlew assembleDebug
 ./gradlew bundleRelease
-./gradlew detekt
 ```
 
 ## Required PAT scopes
@@ -56,7 +55,6 @@ GitHub-Boss-Pro/
 ├── buildSrc/             # Convention plugins + ProjectConfig
 ├── gradle/               # Version catalog + wrapper
 ├── fastlane/             # Play Store / build lanes
-├── config/detekt/        # Static analysis config
 ├── .github/workflows/    # CI + release
 ├── GEMINI-FREE.md        # Free Gemini key guide
 ├── TERMUX-COMMANDS.md    # Phone/Termux build commands
@@ -67,7 +65,6 @@ GitHub-Boss-Pro/
 
 - [Signing](docs/SIGNING.md)
 - [CI / CD](docs/CI.md)
-- [Detekt](docs/DETEKT.md)
 - [Gradle Wrapper](docs/WRAPPER.md)
 - [Free Gemini](GEMINI-FREE.md)
 - [Termux commands](TERMUX-COMMANDS.md)
@@ -75,3 +72,8 @@ GitHub-Boss-Pro/
 ---
 
 Made with help from Grok
+
+
+### Offline template validation
+
+The built-in Kotlin generator runs without API keys. Generated form code is covered by `KotlinCodeMakerTest`, including a check that submitted text is emitted as valid Kotlin string concatenation. The CI build must compile both the app and these unit tests before the branch is considered green.

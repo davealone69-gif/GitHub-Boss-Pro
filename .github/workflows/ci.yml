@@ -36,12 +36,15 @@ jobs:
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
+        with:
+          packages: "platform-tools platforms;android-35 build-tools;35.0.0"
+          accept-android-sdk-licenses: true
 
       - name: Ensure Gradle
         shell: bash
         run: |
           set -euo pipefail
-          if [ -f gradlew ] && [ -f gradle/wrapper/gradle-wrapper.jar ]; then
+          if [ -f gradlew ] && [ -f gradle/wrapper/gradle-wrapper.jar ] && jar tf gradle/wrapper/gradle-wrapper.jar >/dev/null 2>&1; then
             chmod +x gradlew
             echo "GRADLE_CMD=./gradlew" >> "$GITHUB_ENV"
           else
