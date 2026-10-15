@@ -7,7 +7,7 @@ class KotlinCodeMakerTest {
     @Test
     fun generatedFormConcatenatesSubmittedValueAtRuntime() {
         val generated = KotlinCodeMaker.generate("login form")
-            .single { it.name == "LoginViewModel.kt" }
+            .single { it.name == "LoginFormViewModel.kt" }
 
         assertTrue(
             "Generated Kotlin must interpolate the submitted value at runtime",
