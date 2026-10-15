@@ -35,7 +35,6 @@ Control repos, issues, workflows, and notifications from your phone without need
 
 ./gradlew assembleDebug
 ./gradlew bundleRelease
-./gradlew detekt
 ```
 
 ## Required PAT scopes
