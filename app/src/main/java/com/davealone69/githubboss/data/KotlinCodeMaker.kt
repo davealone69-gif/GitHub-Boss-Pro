@@ -153,6 +153,7 @@ data class AppEntity(
             )
         }
 
+        val generatedFileList = files.filter { it.name.endsWith(".kt") }.joinToString("\n") { "- " + "`" + it.path + "`" }
         files += KotlinFile(
             path = "USAGE.md",
             name = "USAGE.md",
@@ -160,7 +161,7 @@ data class AppEntity(
 # Generated from: "$clean"
 
 ## Files
-${files.filter { it.name.endsWith(".kt") }.joinToString("\n") { "- `${it.path}`" }}
+$generatedFileList
 
 ## How to use
 1. Copy the `.kt` files into your Android project under the matching package.
