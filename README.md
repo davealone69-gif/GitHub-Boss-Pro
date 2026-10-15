@@ -72,3 +72,8 @@ GitHub-Boss-Pro/
 ---
 
 Made with help from Grok
+
+
+### Offline template validation
+
+The built-in Kotlin generator runs without API keys. Generated form code is covered by `KotlinCodeMakerTest`, including a check that submitted text is emitted as valid Kotlin string concatenation. The CI build must compile both the app and these unit tests before the branch is considered green.
