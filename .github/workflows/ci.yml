@@ -36,6 +36,9 @@ jobs:
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools'
+          accept-android-sdk-licenses: true
 
       - name: Ensure Gradle
         shell: bash
@@ -66,3 +69,32 @@ jobs:
           path: app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
           retention-days: 14
+
+  publish-latest-apk:
+    name: Publish latest Android debug APK
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - name: Download APK artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: github-boss-pro-debug-apk
+          path: release-apk
+      - name: Publish direct download
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: debug-${{ github.run_number }}-${{ github.run_attempt }}
+          name: Latest Android debug build #${{ github.run_number }}
+          body: |
+            Automated debug/test APK from commit ${{ github.sha }}.
+            This is not a production-signed release.
+          files: release-apk/*.apk
+          make_latest: true
+          prerelease: false
+          fail_on_unmatched_files: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
